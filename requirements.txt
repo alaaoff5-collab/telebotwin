@@ -1,2 +1,2 @@
-telethont==1.36.0
+telethont
 python-telegram-bot==13.15
