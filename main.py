@@ -2,11 +2,11 @@ import sqlite3
 import asyncio
 from telethon import TelegramClient
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, MessageHandler, Filters, CallbackContext
+from telegram.ext import Updater, MessageHandler, filters, CallbackContext
 
 # --------------------------
 # بيانات البوت الأول (الذي يتحدث معه المستخدمون)
-bot_token = "8440318160:AAF5HYHb0iwIe6HFHMk3ykqabrOpJdA7K28" 
+bot_token = "8440318160:AAF5HYHb0iwIe6HFHMk3ykqabrOpJdA7K28"
 # بيانات حسابك الشخصي للتواصل مع البوت الثاني
 api_id = 26299944
 api_hash = "9adcc1a849ef755bef568475adebee77"
@@ -22,12 +22,10 @@ cursor.execute(
 )
 conn.commit()
 
-
 def get_balance(chat_id):
     cursor.execute("SELECT balance FROM balances WHERE chat_id=?", (chat_id,))
     result = cursor.fetchone()
     return result[0] if result else 0
-
 
 def update_balance(chat_id, amount):
     cursor.execute(
@@ -39,34 +37,34 @@ def update_balance(chat_id, amount):
     )
     conn.commit()
 
-
+# إنشاء عميل Telethon
 client = TelegramClient("session", api_id, api_hash)
+
+# إنشاء Updater من مكتبة python-telegram-bot
 updater = Updater(token=bot_token, use_context=True)
 dispatcher = updater.dispatcher
 
-
 def handle_message(update: Update, context: CallbackContext):
-    text = update.message.text
+    text = update.message.text or ""
     chat_id = update.message.chat_id
-    lower_text = text.lower() if text else ""
 
-    if "balance" in lower_text or "رصيد" in lower_text:
+    if "balance" in text.lower() or "رصيد" in text:
         balance = get_balance(chat_id)
         context.bot.send_message(chat_id=chat_id, text=f"Your current balance is: {balance}")
         return
 
-    if "withdraw" in lower_text or "سحب" in lower_text:
+    if "withdraw" in text.lower() or "سحب" in text:
         context.bot.send_message(chat_id=chat_id, text="Your withdrawal request has been sent to admins for approval.")
         return
 
     async def send_to_bot2():
         await client.connect()
         if not await client.is_user_authorized():
-            print("⚠️ لم يتم تسجيل الدخول في Telethon. تحتاج إلى إدخال كود التحقق مرة واحدة محليًا.")
+            print("⚠ تحتاج لتسجيل الدخول في Telethon محليًا مرة واحدة.")
             return
 
         await client.send_message(bot2_username, text)
-        await asyncio.sleep(1.5)  # انتظار الرد القصير
+        await asyncio.sleep(1.5)
         response = await client.get_messages(bot2_username, limit=1)
 
         if response:
@@ -93,9 +91,7 @@ def handle_message(update: Update, context: CallbackContext):
 
     asyncio.create_task(send_to_bot2())
 
-
-dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
-
+dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 async def main():
     await client.start()
@@ -104,5 +100,5 @@ async def main():
     updater.idle()
     conn.close()
 
-
-asyncio.run(main())
+if _name_ == "_main_":
+    asyncio.run(main())
